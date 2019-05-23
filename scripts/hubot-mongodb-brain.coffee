@@ -54,17 +54,25 @@ module.exports = (robot) ->
         for k,v of data._private
           do (k,v) ->
             return if _.isEqual cache[k], v  # skip not modified key
-            robot.logger.debug "save \"#{k}\" into mongodb-brain"
-            cache[k] = deepClone v
-            collection.update
-              type: '_private'
-              key:  k
-            ,
-              $set:
-                value: v
-            ,
-              upsert: true
-            , (err, res) ->
-              robot.logger.error err if err
-            return
+            if !v
+              robot.logger.debug "forgetting \"#{k}\" from mongodb-brain"
+              delete cache[k]
+              collection.deleteOne
+                type: '_private'
+                key:  k
+              , (err, res) ->
+                robot.logger.error err if err
+            else
+              robot.logger.debug "save \"#{k}\" into mongodb-brain"
+              cache[k] = deepClone v
+              collection.update
+                type: '_private'
+                key:  k
+              ,
+                $set:
+                  value: v
+              ,
+                upsert: true
+              , (err, res) ->
+                robot.logger.error err if err
 
